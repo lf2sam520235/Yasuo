@@ -310,7 +310,7 @@ extension UITableView {
 
 //MARK: - UILabel
 
-class UICopyLabel: UILabel {
+class UILabelPasteboard: UILabel {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -416,7 +416,6 @@ class UIImageViewPasteboard: UIImageView {
         return false
     }
     
-
 }
 
 
