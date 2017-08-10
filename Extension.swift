@@ -142,6 +142,26 @@ extension UIColor {
         return UIColor(red: 10/255, green: 186/255, blue: 181/255, alpha: 1)
     }
     
+    open class var minimalBlockChainIconTop : UIColor {
+        return UIColor.rgb(red: 0, green: 219, blue: 222)
+    }
+    
+    open class var minimalBlockChainIconBottom : UIColor {
+        return UIColor.rgb(red: 252, green: 0, blue: 255)
+    }
+    
+    open class var lifeGuideOfGameBrightBlue : UIColor {
+        return UIColor.rgb(red: 0, green: 201, blue: 255)
+    }
+    
+    open class var lifeGuideOfGameBrightGreen : UIColor {
+        return UIColor.rgb(red: 146, green: 254, blue: 157)
+    }
+    
+    open class var overcastBlueColor : UIColor {
+        return UIColor(red: 0, green: 187/255, blue: 204/255, alpha: 1.0)
+    }
+    
     static func rgb(red : CGFloat , green : CGFloat , blue :CGFloat ) -> UIColor {
         return UIColor(red: red/255 , green: green/255 , blue: blue/255 , alpha: 1)
     }
@@ -161,7 +181,23 @@ extension UIColor {
         return double
     }
     
+    convenience init(red: Int, green: Int, blue: Int) {
+        assert(red >= 0 && red <= 255, "Invalid red component")
+        assert(green >= 0 && green <= 255, "Invalid green component")
+        assert(blue >= 0 && blue <= 255, "Invalid blue component")
+        
+        self.init(red: CGFloat(red) / 255.0, green: CGFloat(green) / 255.0, blue: CGFloat(blue) / 255.0, alpha: 1.0)
+    }
+    
+    convenience init(rgb: Int) {
+        self.init(
+            red: (rgb >> 16) & 0xFF,
+            green: (rgb >> 8) & 0xFF,
+            blue: rgb & 0xFF
+        )
+    }
 }
+
 
 //MARK: - UIView
 
@@ -310,52 +346,56 @@ extension UITableView {
 
 //MARK: - UILabel
 
-class UILabelPasteboard: UILabel {
-    
+class UILabelCanPasteboard: UILabel {
+    //system method
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        self.addLongPressHandler()
+    }
     override init(frame: CGRect) {
         super.init(frame: frame)
-        sharedInit()
+        self.addLongPressHandler()
     }
-    
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        sharedInit()
-    }
-    
-    func sharedInit() {
-        isUserInteractionEnabled = true
-        addGestureRecognizer(UILongPressGestureRecognizer(target: self,
-                                                          action: #selector(showMenu)))
-    }
-    
-    func showMenu(sender: AnyObject?) {
-        becomeFirstResponder()
-        let menu = UIMenuController.shared
-        if !menu.isMenuVisible {
-            menu.setTargetRect(bounds, in: self)
-            menu.setMenuVisible(true, animated: true)
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(copy(_:)) {
+            return true
+        }else{
+            return false
         }
     }
-    
     override func copy(_ sender: Any?) {
-        let board = UIPasteboard.general
-        board.string = text
-        let menu = UIMenuController.shared
-        menu.setMenuVisible(false, animated: true)
+        let pBoard = UIPasteboard.general
+        pBoard.string = self.text
     }
     
-    override var canBecomeFocused: Bool {
+    override var canBecomeFirstResponder: Bool {
         return true
     }
     
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        
-        if action == #selector(UIResponderStandardEditActions.copy(_:)) {
-            return true
-        }
-        return false
+    required init?(coder aDecoder: NSCoder) {
+        //实现父类的该方法
+        super.init(coder: aDecoder)
     }
     
+    // MARK: - private method
+    func addLongPressHandler() {
+        //UILabel默认不接收事件，添加touch事件
+        self.isUserInteractionEnabled = true
+        let longPressGesture = UILongPressGestureRecognizer.init(target: self, action: #selector(longPressAction))
+        self.addGestureRecognizer(longPressGesture)
+    }
+    func longPressAction() {
+        
+        self.becomeFirstResponder()
+        let copyItem = UIMenuItem(title: "複製", action: #selector(copy(_:)))
+        let menu = UIMenuController.shared
+        menu.menuItems = [copyItem]
+        if menu.isMenuVisible {
+            return
+        }
+        menu.setTargetRect(bounds, in: self)
+        menu.setMenuVisible(true, animated: true)
+    }
 }
 
 //MARK: - UIImageView
@@ -414,6 +454,64 @@ class UIImageViewPasteboard: UIImageView {
             return true
         }
         return false
+    }
+    
+}
+
+//MARK: - UIImage
+
+extension UIImage {
+    
+    static func createPictureFromView(view: UIView) -> UIImage? {
+        
+        UIGraphicsBeginImageContext(view.frame.size)
+        guard let graphicsGetCurrentContext = UIGraphicsGetCurrentContext() else { return nil }
+        view.layer.render(in: graphicsGetCurrentContext )
+        guard let image = UIGraphicsGetImageFromCurrentImageContext() else { return nil }
+        UIGraphicsEndImageContext()
+        guard let cgImage = image.cgImage else { return nil }
+        
+        return UIImage(cgImage: cgImage)
+    }
+
+}
+
+//MARK: - GradientView
+
+class GradientView: UIView {
+    
+    private var gradientLayer = CAGradientLayer()
+    private var vertical: Bool = false
+    open var topColor = UIColor.green
+    open var bottomColor = UIColor.red
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func draw(_ rect: CGRect) {
+        
+        super.draw(rect)
+        // Drawing code
+        
+        //fill view with gradient layer
+        gradientLayer.frame = self.bounds
+        
+        //style and insert layer if not already inserted
+        if gradientLayer.superlayer == nil {
+            
+            gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+            gradientLayer.endPoint = vertical ? CGPoint(x: 0, y: 1) : CGPoint(x: 1, y: 0)
+            gradientLayer.colors = [topColor.cgColor, bottomColor.cgColor]
+            gradientLayer.locations = [0.0, 1.0]
+            
+            self.layer.insertSublayer(gradientLayer, at: 0)
+        }
     }
     
 }
